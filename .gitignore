@@ -2,3 +2,4 @@ db.sqlite
 *.pyc
 *.un~
 *.swp
+test*/

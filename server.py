@@ -127,7 +127,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print(args)
 
-    backups_dir = args.backups_dir
+    backups_dir = os.path.realpath(args.backups_dir)
 
     socketserver.TCPServer.allow_reuse_address = True
     server = socketserver.TCPServer((args.host, args.port), MyTCPHandler)

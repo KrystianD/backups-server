@@ -1,24 +1,12 @@
-import socket, json, hashlib, struct
+import socket, json, hashlib, struct, argparse, glob, os
 
-TCP_IP = '192.168.200.1'
-TCP_PORT = 4444
-BUFFER_SIZE = 1024
-
-def main():
-    global s
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((TCP_IP, TCP_PORT))
-
-    f = open("test1.tgz", "rb")
-    res = send_file('test4.tgz', f)
-
-    s.close()
+s = None
 
 def send_command(cmd, data):
     data['cmd'] = cmd
     data = json.dumps(data)
     send(0, data.encode('ascii'))
-    data = s.recv(BUFFER_SIZE)
+    data = s.recv(1024)
     return json.loads(data.decode('ascii'))
 
 def send_file(filename, f):
@@ -47,4 +35,25 @@ def send(type, data):
     data = struct.pack("!bL", type, length) + data
     s.send(data)
 
-main()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--host', required=True)
+    parser.add_argument('--port', default=4444)
+    parser.add_argument('--backups-dir', required=True)
+    parser.add_argument('--pattern', default="*.tgz")
+    args = parser.parse_args()
+    print(args)
+
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect((args.host, args.port))
+
+    files = glob.glob(args.backups_dir + "/" + args.pattern)
+    for path in files:
+        filename = os.path.basename(path)
+        print(filename)
+        f = open(path, "rb")
+        res = send_file(filename, f)
+        f.close()
+
+    s.close()
+
