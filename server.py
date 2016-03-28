@@ -1,4 +1,4 @@
-import socketserver, json, glob, struct, os, sys, hashlib, argparse
+import socketserver, json, glob, struct, os, sys, binascii, argparse
 import dataset
 
 backups_dir = None
@@ -85,14 +85,14 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
                     self.file_path = path
                     self.file_path_tmp = path + ".tmp"
                     self.file_handle = open(self.file_path_tmp, "wb")
-                    self.checksum = hashlib.md5()
+                    self.checksum = 0
 
                     self.send_res(0)
                 if data['cmd'] == 'validate':
                     if self.file_handle:
-                        checksum = data['md5']
+                        checksum = data['crc']
 
-                        if self.checksum.hexdigest() == checksum:
+                        if self.checksum == checksum:
                             save_backup(self.filename)
                             os.rename(self.file_path_tmp, self.file_path)
 
@@ -111,8 +111,8 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
                     received += len(part)
                     if self.file_handle:
                         self.file_handle.write(part)
-                        self.checksum.update(part)
-                print(received, self.checksum.hexdigest())
+                        self.checksum = binascii.crc32(part, self.checksum)
+                print(received, self.checksum)
 
     def send_res(self, res):
         resp = {'res': res}

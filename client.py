@@ -9,26 +9,32 @@ def send_command(cmd, data):
     data = s.recv(1024)
     return json.loads(data.decode('ascii'))
 
-def send_file(filename, f):
+def send_file(path, f):
+    filename = os.path.basename(path)
 
-    res = send_command('send', {'filename': filename})
-    print(res)
-    if res['res'] != 0:
-        return
+    with f as open(path, "rb"):
+        f.seek(0, os.SEEK_END)
 
-    m = hashlib.md5()
+        res = send_command('send', {'filename': filename})
+        print("response: {0}".format(res))
+        if res['res'] != 0:
+            return
 
-    while True:
-        data = f.read(30 * 1024 * 1024)
-        if len(data) == 0:
-            break
-        m.update(data)
-        print(len(data), m.hexdigest())
-        send(1, data)
+        m = hashlib.md5()
 
-    res = send_command('validate', {'md5': m.hexdigest()})
-    if res['res'] != 0:
-        return
+        total_sent = 0
+        while True:
+            data = f.read(30 * 1024 * 1024)
+            if len(data) == 0:
+                break
+            total_send += len(data)
+            m.update(data)
+            print("sent {0:02} MB of {1:02} MB".format(len(data) / 1024 / 1024, total_sent / 1024 / 1024))
+            send(1, data)
+
+        res = send_command('validate', {'md5': m.hexdigest()})
+        if res['res'] != 0:
+            return
 
 def send(type, data):
     length = len(data)
@@ -53,7 +59,6 @@ if __name__ == "__main__":
         print(filename)
         f = open(path, "rb")
         res = send_file(filename, f)
-        f.close()
 
     s.close()
 
