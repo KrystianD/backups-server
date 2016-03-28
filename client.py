@@ -1,4 +1,4 @@
-import socket, json, hashlib, struct, argparse, glob, os
+import socket, json, binascii, struct, argparse, glob, os
 
 s = None
 
@@ -20,19 +20,19 @@ def send_file(path, f):
         if res['res'] != 0:
             return
 
-        m = hashlib.md5()
-
+        crc = 0
         total_sent = 0
+
         while True:
             data = f.read(30 * 1024 * 1024)
             if len(data) == 0:
                 break
             total_send += len(data)
-            m.update(data)
+            crc = binascii.crc32(data, crc)
             print("sent {0:02} MB of {1:02} MB".format(len(data) / 1024 / 1024, total_sent / 1024 / 1024))
             send(1, data)
 
-        res = send_command('validate', {'md5': m.hexdigest()})
+        res = send_command('validate', {'crc': crc})
         if res['res'] != 0:
             return
 
